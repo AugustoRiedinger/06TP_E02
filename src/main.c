@@ -30,6 +30,10 @@ DEFINICIONES:
 #define RX_Port	GPIOA
 #define RX		GPIO_Pin_3
 
+/*Pines del TX UART:*/
+#define TX_Port	GPIOA
+#define TX		GPIO_Pin_2
+
 /*Velocidad de trabajo del UART:*/
 #define BaudRate 9600
 
@@ -65,8 +69,9 @@ CONFIGURACION DEL MICRO:
 	/*Inicializacion del DISPLAY LCD:*/
 	INIT_LCD_2x16(LCD_2X16);
 
-	/*Inicializacion del puerto serie en el pin:*/
+	/*Inicializacion del puerto serie RX y TX:*/
 	INIT_USART_RX(RX_Port, RX, BaudRate);
+	INIT_USART_TX(TX_Port, TX, BaudRate);
 
 	//Inicialización del TIM3 para refresco del LCD:
 	INIT_TIM3();
