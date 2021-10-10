@@ -1,0 +1,2 @@
+# 06TP_E02
+ Al ejercicio anterior sumarle la transmisión RS232 para convertirlo en un sistema FULL-DUPLEX. Conectar el kit a la PC y mediante un software en la PC enviar un mensaje al KIT. El uC debe analizar la trama recibida y determinar la ubicación desde el inicio del archivo y el valor asignado de una determinada variable. Ejemplo: “lux=1000”. Y enviarle esta información a la PC para que el mismo software TERMINAL presente el resultado en su interfase. También debe indicar cuantos caracteres analizó para encontrar la variable en cuestión.
