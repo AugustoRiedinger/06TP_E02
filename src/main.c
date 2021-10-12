@@ -50,14 +50,17 @@ LCD_2X16_t LCD_2X16[] = {
 			{ TLCD_D6, GPIOF, GPIO_Pin_6,  RCC_AHB1Periph_GPIOF, Bit_RESET },
 			{ TLCD_D7, GPIOF, GPIO_Pin_7,  RCC_AHB1Periph_GPIOF, Bit_RESET }, };
 
-/*Variable para almacenamiento de datos recibidos:*/
-char Data;
+/*Variable para almacenamiento de chars recibidos:*/
+char 	CharRec;
+
+/*Variable para concatenar los caracteres recibidos en una cadena:*/
+char* 	DataString;
 
 /*Variable para contar los caracteres:*/
 uint32_t Ch = 0;
 
 /*Variable para contar el tiempo de lectura:*/
-float OpTime = 0;
+float 	OpTime = 0;
 
 int main(void)
 {
@@ -70,7 +73,7 @@ CONFIGURACION DEL MICRO:
 	INIT_LCD_2x16(LCD_2X16);
 
 	/*Inicializacion del puerto serie RX y TX:*/
-	INIT_USART_TX(TX_Port, TX, BaudRate);
+	INIT_USART_RX_TX(RX_Port, RX, TX_Port, TX, BaudRate);
 
 	//Inicialización del TIM3 para refresco del LCD:
 	INIT_TIM3();
@@ -81,16 +84,23 @@ BUCLE PRINCIPAL:
 ------------------------------------------------------------------------------*/
     while(1)
     {
-    	/*Ingresa cada 1 segundo:*/
-		if (Ch == 4) {
+		/*Dato recibido:*/
+		if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET) {
+			/*Se guarda lo recibido en la varibale Data:*/
+			Data = USART_ReceiveData(USART2);
+
+			/*Se utiliza un '#' para indicar final de cadena:*/
+			if (Data != '#')
+				Ch++;
+
 			/*Enviar datos:*/
 			while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
 			{}
-			USART_SendData(USART2, 'a');
-
-			/*Resetea Ch:*/
-			Ch = 0;
+			USART_SendData(USART2, Data);
 		}
+
+		/*Calculo del tiempo de operacion:*/
+		OpTime = (float) Ch / BaudRate;
     }
 }
 /*------------------------------------------------------------------------------
@@ -106,9 +116,6 @@ void TIM3_IRQHandler(void)
 		char BufferData[BufferLength];
 		char BufferCh[BufferLength];
 		char BufferOpTime[BufferLength];
-
-		/*Incrementa Ch cada 250mseg:*/
-		Ch++;
 
 		/*Refresco del LCD: */
 		CLEAR_LCD_2x16(LCD_2X16);
