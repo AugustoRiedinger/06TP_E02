@@ -70,7 +70,6 @@ CONFIGURACION DEL MICRO:
 	INIT_LCD_2x16(LCD_2X16);
 
 	/*Inicializacion del puerto serie RX y TX:*/
-	INIT_USART_RX(RX_Port, RX, BaudRate);
 	INIT_USART_TX(TX_Port, TX, BaudRate);
 
 	//Inicialización del TIM3 para refresco del LCD:
@@ -82,18 +81,16 @@ BUCLE PRINCIPAL:
 ------------------------------------------------------------------------------*/
     while(1)
     {
-    	/*Dato recibido:*/
-		if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET)
-		{
-			/*Se guarda lo recibido en la varibale Data:*/
-			Data = USART_ReceiveData(USART2);
+    	/*Ingresa cada 1 segundo:*/
+		if (Ch == 4) {
+			/*Enviar datos:*/
+			while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
+			{}
+			USART_SendData(USART2, 'a');
 
-			/*Se utiliza un '#' para indicar final de cadena:*/
-			if (Data != '#')
-				Ch++;
+			/*Resetea Ch:*/
+			Ch = 0;
 		}
-
-		OpTime = (float) Ch / BaudRate;
     }
 }
 /*------------------------------------------------------------------------------
@@ -109,6 +106,9 @@ void TIM3_IRQHandler(void)
 		char BufferData[BufferLength];
 		char BufferCh[BufferLength];
 		char BufferOpTime[BufferLength];
+
+		/*Incrementa Ch cada 250mseg:*/
+		Ch++;
 
 		/*Refresco del LCD: */
 		CLEAR_LCD_2x16(LCD_2X16);
