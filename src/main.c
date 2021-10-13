@@ -37,6 +37,9 @@ DEFINICIONES:
 /*Velocidad de trabajo del UART:*/
 #define BaudRate 9600
 
+/*Maximos de palabra:*/
+#define MaxDataBits 8
+
 /*------------------------------------------------------------------------------
 VARIABLES GLOBALES:
 ------------------------------------------------------------------------------*/
@@ -51,16 +54,16 @@ LCD_2X16_t LCD_2X16[] = {
 			{ TLCD_D7, GPIOF, GPIO_Pin_7,  RCC_AHB1Periph_GPIOF, Bit_RESET }, };
 
 /*Variable para almacenamiento de chars recibidos:*/
-char 	CharRec;
+char 	CharRec[MaxDataBits];
 
 /*Variable para concatenar los caracteres recibidos en una cadena:*/
-char* 	DataString;
-
-/*Variable para contar los caracteres:*/
-uint32_t Ch = 0;
+char 	DataString[1000*MaxDataBits];
 
 /*Variable para contar el tiempo de lectura:*/
 float 	OpTime = 0;
+
+/*Variable para contar los caracteres:*/
+int 	StringLength;
 
 int main(void)
 {
@@ -85,22 +88,24 @@ BUCLE PRINCIPAL:
     while(1)
     {
 		/*Dato recibido:*/
-		if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET) {
+		while (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET) {
 			/*Se guarda lo recibido en la varibale Data:*/
-			Data = USART_ReceiveData(USART2);
+			CharRec[0] = USART_ReceiveData(USART2);
 
-			/*Se utiliza un '#' para indicar final de cadena:*/
-			if (Data != '#')
-				Ch++;
+			/*Se concatena el caracter recibidos con los anteriores para formar la cadena:*/
+			strcat(DataString, CharRec);
 
 			/*Enviar datos:*/
 			while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
 			{}
-			USART_SendData(USART2, Data);
+			USART_SendData(USART2, CharRec[0]);
 		}
 
+		/*Calculo de la cantidad de caracteres en la cadena:*/
+		StringLength = strlen(DataString);
+
 		/*Calculo del tiempo de operacion:*/
-		OpTime = (float) Ch / BaudRate;
+		OpTime = (float) StringLength / BaudRate;
     }
 }
 /*------------------------------------------------------------------------------
@@ -113,25 +118,25 @@ void TIM3_IRQHandler(void)
 		TIM_ClearITPendingBit(TIM3, TIM_IT_CC1);
 
 		/*Buffers para almacenamiento de datos:*/
-		char BufferData[BufferLength];
-		char BufferCh[BufferLength];
+		char BufferStringLength[1000*MaxDataBits];
+		char BufferCharRec[MaxDataBits];
 		char BufferOpTime[BufferLength];
 
 		/*Refresco del LCD: */
 		CLEAR_LCD_2x16(LCD_2X16);
 
 		/*Copiar datos a los buffers para imprimir:*/
-		sprintf(BufferData, "%c", Data);
-		sprintf(BufferCh, "%d", Ch);
+		sprintf(BufferCharRec, "%c", CharRec[0]);
+		sprintf(BufferStringLength, "%d", StringLength);
 		sprintf(BufferOpTime, "%.2f", OpTime);
 
 		/*Mensaje para indicar el ultimo caracter leido:*/
 		PRINT_LCD_2x16(LCD_2X16, 0, 0, "Ultimo char: ");
-		PRINT_LCD_2x16(LCD_2X16, 13, 0, BufferData);
+		PRINT_LCD_2x16(LCD_2X16, 13, 0, BufferCharRec);
 
 		/*Mensaje para indicar la cantidad de caracteres leidos:*/
 		PRINT_LCD_2x16(LCD_2X16, 0, 1, "Cant:");
-		PRINT_LCD_2x16(LCD_2X16, 5, 1, BufferCh);
+		PRINT_LCD_2x16(LCD_2X16, 5, 1, BufferStringLength);
 
 		/*Mensaje para indicar el tiempo de operacion.*/
 		PRINT_LCD_2x16(LCD_2X16, 10, 1, "T:");
