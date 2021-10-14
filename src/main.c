@@ -40,6 +40,9 @@ DEFINICIONES:
 /*Maximos de palabra:*/
 #define MaxDataBits 8
 
+/*Variable a encontrar:*/
+#define Text2Find "Res"
+
 /*------------------------------------------------------------------------------
 VARIABLES GLOBALES:
 ------------------------------------------------------------------------------*/
@@ -68,6 +71,9 @@ int 	StringLength;
 /*Contador de filas de DataString*/
 uint32_t n = 0;
 
+/*Flag para indicar que la variable fue encontrada:*/
+uint32_t FlagVarFound = 0;
+
 int main(void)
 {
 /*------------------------------------------------------------------------------
@@ -91,27 +97,22 @@ BUCLE PRINCIPAL:
     while(1)
     {
 		/*Dato recibido:*/
-		while (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET) {
+		while (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET && FlagVarFound == 0) {
 			/*Se guarda lo recibido en la varibale Data:*/
 			CharRec[0] = USART_ReceiveData(USART2);
 
 			if (strcmp(CharRec, "\n")==0)
 				n++;
+			else if (strcmp(CharRec, "=")==0 && strcmp(DataString[n],Text2Find)==0)
+				FlagVarFound = 1;
 			else
 				strcat(DataString[n], CharRec);
 
-
-			/*Enviar datos:*/
+			/*Imprimir datos en la consola de la PC:*/
 			while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
 			{}
 			USART_SendData(USART2, CharRec[0]);
 		}
-
-		/*Calculo de la cantidad de caracteres en la cadena:*/
-		StringLength = strlen(DataString[n]);
-
-		/*Calculo del tiempo de operacion:*/
-		OpTime = (float) StringLength / BaudRate;
     }
 }
 /*------------------------------------------------------------------------------
@@ -132,13 +133,22 @@ void TIM3_IRQHandler(void)
 		CLEAR_LCD_2x16(LCD_2X16);
 
 		/*Copiar datos a los buffers para imprimir:*/
-		sprintf(BufferStringData, "%s", DataString[n-1]);
 		sprintf(BufferStringLength, "%d", StringLength);
 		sprintf(BufferOpTime, "%.2f", OpTime);
 
 		/*Mensaje para indicar el ultimo caracter leido:*/
 		PRINT_LCD_2x16(LCD_2X16, 0, 0, "Var: ");
-		PRINT_LCD_2x16(LCD_2X16, 5, 0, BufferStringData);
+		if (FlagVarFound == 1)
+		{
+			/*Calculo de la cantidad de caracteres en la cadena:*/
+			StringLength = strlen(DataString[n]);
+
+			/*Calculo del tiempo de operacion:*/
+			OpTime = (float) StringLength / BaudRate;
+
+			sprintf(BufferStringData, "%s", DataString[n]);
+			PRINT_LCD_2x16(LCD_2X16, 5, 0, BufferStringData);
+		}
 
 		/*Mensaje para indicar la cantidad de caracteres leidos:*/
 		PRINT_LCD_2x16(LCD_2X16, 0, 1, "Cant:");
