@@ -4,7 +4,7 @@
   * @version 0.1
   * @date    04-10-21
   * @brief   Envio y recepcion de datos a través del protocolo RS232 a una PC
-  * 		 por un cable RS232-USB..
+  * 		 por un cable RS232-USB.
 
   * SALIDAS:
   	  *	LCD  	Conexion Estandar TPs
@@ -57,13 +57,16 @@ LCD_2X16_t LCD_2X16[] = {
 char 	CharRec[MaxDataBits];
 
 /*Variable para concatenar los caracteres recibidos en una cadena:*/
-char 	DataString[1000*MaxDataBits];
+char 	DataString[5][100];
 
 /*Variable para contar el tiempo de lectura:*/
 float 	OpTime = 0;
 
 /*Variable para contar los caracteres:*/
 int 	StringLength;
+
+/*Contador de filas de DataString*/
+uint32_t n = 0;
 
 int main(void)
 {
@@ -92,8 +95,11 @@ BUCLE PRINCIPAL:
 			/*Se guarda lo recibido en la varibale Data:*/
 			CharRec[0] = USART_ReceiveData(USART2);
 
-			/*Se concatena el caracter recibidos con los anteriores para formar la cadena:*/
-			strcat(DataString, CharRec);
+			if (strcmp(CharRec, "\n")==0)
+				n++;
+			else
+				strcat(DataString[n], CharRec);
+
 
 			/*Enviar datos:*/
 			while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
@@ -102,7 +108,7 @@ BUCLE PRINCIPAL:
 		}
 
 		/*Calculo de la cantidad de caracteres en la cadena:*/
-		StringLength = strlen(DataString);
+		StringLength = strlen(DataString[n]);
 
 		/*Calculo del tiempo de operacion:*/
 		OpTime = (float) StringLength / BaudRate;
@@ -119,20 +125,20 @@ void TIM3_IRQHandler(void)
 
 		/*Buffers para almacenamiento de datos:*/
 		char BufferStringLength[1000*MaxDataBits];
-		char BufferCharRec[MaxDataBits];
+		char BufferStringData[1000*MaxDataBits];
 		char BufferOpTime[BufferLength];
 
 		/*Refresco del LCD: */
 		CLEAR_LCD_2x16(LCD_2X16);
 
 		/*Copiar datos a los buffers para imprimir:*/
-		sprintf(BufferCharRec, "%c", CharRec[0]);
+		sprintf(BufferStringData, "%s", DataString[n-1]);
 		sprintf(BufferStringLength, "%d", StringLength);
 		sprintf(BufferOpTime, "%.2f", OpTime);
 
 		/*Mensaje para indicar el ultimo caracter leido:*/
-		PRINT_LCD_2x16(LCD_2X16, 0, 0, "Ultimo char: ");
-		PRINT_LCD_2x16(LCD_2X16, 13, 0, BufferCharRec);
+		PRINT_LCD_2x16(LCD_2X16, 0, 0, "Var: ");
+		PRINT_LCD_2x16(LCD_2X16, 5, 0, BufferStringData);
 
 		/*Mensaje para indicar la cantidad de caracteres leidos:*/
 		PRINT_LCD_2x16(LCD_2X16, 0, 1, "Cant:");
