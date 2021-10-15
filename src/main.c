@@ -41,7 +41,7 @@ DEFINICIONES:
 #define MaxDataBits 8
 
 /*Variable a encontrar:*/
-#define Text2Find "Res"
+#define Text2Find "emf"
 
 /*------------------------------------------------------------------------------
 VARIABLES GLOBALES:
@@ -60,19 +60,19 @@ LCD_2X16_t LCD_2X16[] = {
 char 	CharRec[MaxDataBits];
 
 /*Matriz de strings, guarda cada variable leida en una fila distinta:*/
-char 	DataString[5][100];
+char 	DataString[15][15];
 
 /*Variable para contar el tiempo de lectura:*/
 float 	OpTime = 0;
 
 /*Variable para contar los caracteres:*/
-int 	StringLength;
+int 	StringLength = 0;
 
 /*Contador de filas de DataString:*/
-uint32_t n = 0;
+uint32_t Row = 0;
 
 /*Contador de columnas de DataString:*/
-uint32_t i = 0;
+uint32_t Col = 0;
 
 /*Flag para indicar que la variable fue encontrada:*/
 uint32_t FlagVarFound = 0;
@@ -110,18 +110,21 @@ BUCLE PRINCIPAL:
 			/*Si se llego al fin de linea y no se encontro la variable:*/
 			if (!strcmp(CharRec, "\n") && FlagVarFound == 0 )
 				/*Se sigue almacenando en la siguiente fila:*/
-				n++;
+				Row++;
 			/*Si se encontro la variable y se llego al fin de linea:*/
 			else if (!strcmp(CharRec, "\n") && FlagVarFound == 1)
 				/*Se pone en 1 el flag para no entrar al while:*/
 				FlagVarValue = 1;
 			/*Si lo que esta antes del '=' es lo mismo a la variable a encontrar:*/
-			else if (!strcmp(CharRec, "=") && !strcmp(DataString[n],Text2Find))
+			else if (!strcmp(CharRec, "=") && !strcmp(DataString[Row],Text2Find))
 				/*Se pone en 1 el flag de variable encontrada:*/
 				FlagVarFound = 1;
 			/*Se concatena el caracter leido actual con los anteriores:*/
 			else
-				strcat(DataString[n], CharRec);
+				strcat(DataString[Row], CharRec);
+
+			/*Calculo de la cantidad de caracteres en la cadena:*/
+			StringLength++;
 		}
     }
 }
@@ -146,24 +149,21 @@ void TIM3_IRQHandler(void)
 		PRINT_LCD_2x16(LCD_2X16, 0, 0, "Var: ");
 		if (FlagVarFound == 1)
 		{
-			/*Calculo de la cantidad de caracteres en la cadena:*/
-			StringLength = strlen(DataString[n]);
-
 			/*Calculo del tiempo de operacion:*/
 			OpTime = (float) StringLength / BaudRate;
 
 			/*Imprimir fila de DataString en el display LCD:*/
-			sprintf(BufferStringData, "%s", DataString[n]);
+			sprintf(BufferStringData, "%s", DataString[Row]);
 			PRINT_LCD_2x16(LCD_2X16, 5, 0, BufferStringData);
 
 			/*Imprimir fila de DataString en la consola de la PC:*/
 			while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
 			{}
 			/*Si no se llego al final de la fila de DataString:*/
-			if (DataString[n][i] != "\0") {
+			if (DataString[Row][Col] != "\0") {
 				/*Continuar imprimiendo datos en la PC:*/
-				USART_SendData(USART2, DataString[n][i]);
-				i++;
+				USART_SendData(USART2, DataString[Row][Col]);
+				Col++;
 			}
 		}
 
