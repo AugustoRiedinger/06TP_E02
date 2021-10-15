@@ -1,0 +1,10 @@
+Lux=1000
+Temp=25
+Volt=12
+Amp=1
+Res=1500
+Pow=152
+emf=74
+B=148
+H=32
+Stif=5467
