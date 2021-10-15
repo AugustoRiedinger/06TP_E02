@@ -59,7 +59,7 @@ LCD_2X16_t LCD_2X16[] = {
 /*Variable para almacenamiento de chars recibidos:*/
 char 	CharRec[MaxDataBits];
 
-/*Variable para concatenar los caracteres recibidos en una cadena:*/
+/*Matriz de strings, guarda cada variable leida en una fila distinta:*/
 char 	DataString[5][100];
 
 /*Variable para contar el tiempo de lectura:*/
@@ -68,11 +68,17 @@ float 	OpTime = 0;
 /*Variable para contar los caracteres:*/
 int 	StringLength;
 
-/*Contador de filas de DataString*/
+/*Contador de filas de DataString:*/
 uint32_t n = 0;
+
+/*Contador de columnas de DataString:*/
+uint32_t i = 0;
 
 /*Flag para indicar que la variable fue encontrada:*/
 uint32_t FlagVarFound = 0;
+
+/*Flag para indicar que se guardo el valor efectivo de la variable:*/
+uint32_t FlagVarValue = 0;
 
 int main(void)
 {
@@ -87,7 +93,7 @@ CONFIGURACION DEL MICRO:
 	/*Inicializacion del puerto serie RX y TX:*/
 	INIT_USART_RX_TX(RX_Port, RX, TX_Port, TX, BaudRate);
 
-	//Inicialización del TIM3 para refresco del LCD:
+	/*Inicialización del TIM3 para refresco del LCD:*/
 	INIT_TIM3();
 	SET_TIM3(TimeBase, Freq);
 
@@ -96,22 +102,26 @@ BUCLE PRINCIPAL:
 ------------------------------------------------------------------------------*/
     while(1)
     {
-		/*Dato recibido:*/
-		while (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET && FlagVarFound == 0) {
+		/*Mientras se reciba un dato y no se haya encontrado la varible a buscar:*/
+		while (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) != RESET && FlagVarValue == 0){
 			/*Se guarda lo recibido en la varibale Data:*/
 			CharRec[0] = USART_ReceiveData(USART2);
 
-			if (strcmp(CharRec, "\n")==0)
+			/*Si se llego al fin de linea y no se encontro la variable:*/
+			if (!strcmp(CharRec, "\n") && FlagVarFound == 0 )
+				/*Se sigue almacenando en la siguiente fila:*/
 				n++;
-			else if (strcmp(CharRec, "=")==0 && strcmp(DataString[n],Text2Find)==0)
+			/*Si se encontro la variable y se llego al fin de linea:*/
+			else if (!strcmp(CharRec, "\n") && FlagVarFound == 1)
+				/*Se pone en 1 el flag para no entrar al while:*/
+				FlagVarValue = 1;
+			/*Si lo que esta antes del '=' es lo mismo a la variable a encontrar:*/
+			else if (!strcmp(CharRec, "=") && !strcmp(DataString[n],Text2Find))
+				/*Se pone en 1 el flag de variable encontrada:*/
 				FlagVarFound = 1;
+			/*Se concatena el caracter leido actual con los anteriores:*/
 			else
 				strcat(DataString[n], CharRec);
-
-			/*Imprimir datos en la consola de la PC:*/
-			while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
-			{}
-			USART_SendData(USART2, CharRec[0]);
 		}
     }
 }
@@ -132,11 +142,7 @@ void TIM3_IRQHandler(void)
 		/*Refresco del LCD: */
 		CLEAR_LCD_2x16(LCD_2X16);
 
-		/*Copiar datos a los buffers para imprimir:*/
-		sprintf(BufferStringLength, "%d", StringLength);
-		sprintf(BufferOpTime, "%.2f", OpTime);
-
-		/*Mensaje para indicar el ultimo caracter leido:*/
+		/*Mensaje para indicar el valor de la variable encontrada:*/
 		PRINT_LCD_2x16(LCD_2X16, 0, 0, "Var: ");
 		if (FlagVarFound == 1)
 		{
@@ -146,15 +152,28 @@ void TIM3_IRQHandler(void)
 			/*Calculo del tiempo de operacion:*/
 			OpTime = (float) StringLength / BaudRate;
 
+			/*Imprimir fila de DataString en el display LCD:*/
 			sprintf(BufferStringData, "%s", DataString[n]);
 			PRINT_LCD_2x16(LCD_2X16, 5, 0, BufferStringData);
+
+			/*Imprimir fila de DataString en la consola de la PC:*/
+			while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
+			{}
+			/*Si no se llego al final de la fila de DataString:*/
+			if (DataString[n][i] != "\0") {
+				/*Continuar imprimiendo datos en la PC:*/
+				USART_SendData(USART2, DataString[n][i]);
+				i++;
+			}
 		}
 
 		/*Mensaje para indicar la cantidad de caracteres leidos:*/
+		sprintf(BufferStringLength, "%d", StringLength);
 		PRINT_LCD_2x16(LCD_2X16, 0, 1, "Cant:");
 		PRINT_LCD_2x16(LCD_2X16, 5, 1, BufferStringLength);
 
-		/*Mensaje para indicar el tiempo de operacion.*/
+		/*Mensaje para indicar el tiempo de operacion:*/
+		sprintf(BufferOpTime, "%.2f", OpTime);
 		PRINT_LCD_2x16(LCD_2X16, 10, 1, "T:");
 		PRINT_LCD_2x16(LCD_2X16, 12, 1, BufferOpTime);
 	}
