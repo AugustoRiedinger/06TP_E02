@@ -41,7 +41,7 @@ DEFINICIONES:
 #define MaxDataBits 8
 
 /*Variable a encontrar:*/
-#define Text2Find "emf"
+#define Text2Find "Res"
 
 /*------------------------------------------------------------------------------
 VARIABLES GLOBALES:
@@ -120,11 +120,11 @@ BUCLE PRINCIPAL:
 				/*Se pone en 1 el flag de variable encontrada:*/
 				FlagVarFound = 1;
 			/*Se concatena el caracter leido actual con los anteriores:*/
-			else
+			else {
 				strcat(DataString[Row], CharRec);
-
-			/*Calculo de la cantidad de caracteres en la cadena:*/
-			StringLength++;
+				/*Calculo de la cantidad de caracteres en la cadena:*/
+				StringLength++;
+			}
 		}
     }
 }
@@ -149,9 +149,6 @@ void TIM3_IRQHandler(void)
 		PRINT_LCD_2x16(LCD_2X16, 0, 0, "Var: ");
 		if (FlagVarFound == 1)
 		{
-			/*Calculo del tiempo de operacion:*/
-			OpTime = (float) StringLength / BaudRate;
-
 			/*Imprimir fila de DataString en el display LCD:*/
 			sprintf(BufferStringData, "%s", DataString[Row]);
 			PRINT_LCD_2x16(LCD_2X16, 5, 0, BufferStringData);
@@ -173,6 +170,7 @@ void TIM3_IRQHandler(void)
 		PRINT_LCD_2x16(LCD_2X16, 5, 1, BufferStringLength);
 
 		/*Mensaje para indicar el tiempo de operacion:*/
+		OpTime = (float) StringLength / BaudRate;
 		sprintf(BufferOpTime, "%.2f", OpTime);
 		PRINT_LCD_2x16(LCD_2X16, 10, 1, "T:");
 		PRINT_LCD_2x16(LCD_2X16, 12, 1, BufferOpTime);
